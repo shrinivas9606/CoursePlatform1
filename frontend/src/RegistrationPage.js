@@ -24,9 +24,19 @@ function RegistrationPage() {
             });
             navigate('/login');
         } catch (error) {
-            console.error('Registration failed!', error.response.data);
-            // You can add more specific error handling here later
-            alert('Registration failed. Please check the details and try again.');
+            if (error.response) {
+            // The server responded with an error (e.g., username taken)
+                console.error('Registration failed with server error:', error.response.data);
+                alert('Registration failed. Please check your details.');
+            } else if (error.request) {
+                // The request was made but no response was received (Network Error)
+                console.error('Network Error:', error.request);
+                alert('Cannot connect to the server. Please make sure the backend is running and accessible.');
+            } else {
+                // Something else went wrong
+                console.error('Error:', error.message);
+                alert('An unexpected error occurred.');
+            }
         }
     };
 
