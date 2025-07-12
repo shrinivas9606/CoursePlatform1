@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'https://course-platform-api-rard.onrender.com/api/'
+    baseURL: 'https://course-platform-api-rard.onrender.com/api'
 });
 
 // Use an interceptor to add the auth token to every request
