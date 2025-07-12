@@ -9,8 +9,8 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-import os # Add this import at the top
-import dj_database_url # Add this import at the top
+import os
+import dj_database_url
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,13 +20,23 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-stwy=)jaf+3k#5iwz_%#zndp3oo%n&@zsj0ruv!*kevh%0%81p'
+# --- PRODUCTION CHANGE 1: SECRET_KEY ---
+# Your secret key is now read from an environment variable for security.
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
+# --- PRODUCTION CHANGE 2: DEBUG MODE ---
+# DEBUG is correctly set to False in production.
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
+
+# --- PRODUCTION CHANGE 3: ALLOWED_HOSTS ---
+# This section dynamically adds your live server URLs.
+# This fixes the '400 Bad Request' error.
 ALLOWED_HOSTS = []
+
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 
 # Application definition
@@ -37,18 +47,19 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'whitenoise.runserver_nostatic', # Add this for static files
     'django.contrib.staticfiles',
-    'django.contrib.sites', # Required by dj-rest-auth
+    'django.contrib.sites',
 
     # Third-party apps
     'rest_framework',
-    'rest_framework.authtoken', # Required by dj-rest-auth
-    'corsheaders', # Add this
-    'dj_rest_auth', # The main app
-    'allauth', # Required by dj-rest-auth
-    'allauth.account', # Required by dj-rest-auth
-    'allauth.socialaccount', # Optional, for social logins later
-    'dj_rest_auth.registration', # For the registration endpoint
+    'rest_framework.authtoken',
+    'corsheaders',
+    'dj_rest_auth',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'dj_rest_auth.registration',
 
     # Your apps
     'courses',
@@ -56,17 +67,14 @@ INSTALLED_APPS = [
 
 # Specifies the login mechanism
 AUTHENTICATION_BACKENDS = [
-    # Needed to login by username in Django admin, regardless of `allauth`
     'django.contrib.auth.backends.ModelBackend',
-
-    # `allauth` specific authentication methods, such as login by e-mail
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    'corsheaders.middleware.CorsMiddleware', # Add this
+    'whitenoise.middleware.WhiteNoiseMiddleware', # Whitenoise should be high up
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -99,10 +107,11 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# Default to your local database
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'course_platform_db', # The name of the database you created
+        'NAME': 'course_platform_db',
         'USER': 'postgres',
         'PASSWORD': 'Pass#7767',
         'HOST': 'localhost',
@@ -110,30 +119,19 @@ DATABASES = {
     }
 }
 
-# Database configuration for Render
+# In production on Render, it will use the DATABASE_URL environment variable
 if 'DATABASE_URL' in os.environ:
-    DATABASES = {
-        'default': dj_database_url.config(conn_max_age=600, ssl_require=True)
-    }
-
+    DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
 
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
 ]
 
 
@@ -141,43 +139,49 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-# STATIC_URL = 'static/'
-# Static files (Whitenoise)
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000", # The address of your React app
-]
+
+# --- PRODUCTION CHANGE 4: CORS ---
+# This section dynamically allows your live frontend to talk to your backend.
+CORS_ALLOWED_ORIGINS = []
+FRONTEND_URL = os.environ.get('FRONTEND_URL')
+if FRONTEND_URL:
+    CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
+
+# If not in production, allow localhost for development
+if 'RENDER' not in os.environ:
+    CORS_ALLOWED_ORIGINS.append("http://localhost:3000")
+
 
 SITE_ID = 1
 
+# --- ALLAUTH & DJ-REST-AUTH SETTINGS ---
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_EMAIL_VERIFICATION = 'none' # Disables email verification for now
-
+ACCOUNT_EMAIL_VERIFICATION = 'none'
 
 REST_AUTH = {
-    'USER_DETAILS_SERIALIZER': 'dj_rest_auth.serializers.UserDetailsSerializer',
+    'USER_DETAILS_SERIALIZER': 'courses.serializers.CustomUserDetailsSerializer',
 }
 
-RAZORPAY_KEY_ID = 'rzp_test_EfbvsurNwfsHZQ'       # Paste your Key ID here
-RAZORPAY_KEY_SECRET = 'XoRGsNUH7ST3673xoWtbVpbO' # Paste your Key Secret here
+# --- RAZORPAY SETTINGS ---
+RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID')
+RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET')
