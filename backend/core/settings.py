@@ -33,12 +33,12 @@ DEBUG = 'DYNO' not in os.environ
 # This section dynamically adds your live server URLs for Heroku.
 ALLOWED_HOSTS = []
 
-HEROKU_APP_NAME = os.environ.get('HEROKU_APP_NAME')
-if HEROKU_APP_NAME:
-    ALLOWED_HOSTS.append(f"{HEROKU_APP_NAME}.herokuapp.com")
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 # For local development
-if not HEROKU_APP_NAME:
+if 'RENDER' not in os.environ:
     ALLOWED_HOSTS.append('127.0.0.1')
 
 
