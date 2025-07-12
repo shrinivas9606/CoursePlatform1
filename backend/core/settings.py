@@ -20,23 +20,26 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# --- PRODUCTION CHANGE 1: SECRET_KEY ---
 # Your secret key is now read from an environment variable for security.
+# Make sure to set this on Heroku.
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
-# --- PRODUCTION CHANGE 2: DEBUG MODE ---
 # DEBUG is correctly set to False in production.
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+# Heroku sets the 'DYNO' environment variable.
+DEBUG = 'DYNO' not in os.environ
 
 
-# --- PRODUCTION CHANGE 3: ALLOWED_HOSTS ---
-# This section dynamically adds your live server URLs.
-# This fixes the '400 Bad Request' error.
+# --- HEROKU CHANGE 1: ALLOWED_HOSTS ---
+# This section dynamically adds your live server URLs for Heroku.
 ALLOWED_HOSTS = []
 
-RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+HEROKU_APP_NAME = os.environ.get('HEROKU_APP_NAME')
+if HEROKU_APP_NAME:
+    ALLOWED_HOSTS.append(f"{HEROKU_APP_NAME}.herokuapp.com")
+
+# For local development
+if not HEROKU_APP_NAME:
+    ALLOWED_HOSTS.append('127.0.0.1')
 
 
 # Application definition
@@ -47,7 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'whitenoise.runserver_nostatic', # Add this for static files
+    'whitenoise.runserver_nostatic', # For static files
     'django.contrib.staticfiles',
     'django.contrib.sites',
 
@@ -119,14 +122,12 @@ DATABASES = {
     }
 }
 
-# In production on Render, it will use the DATABASE_URL environment variable
+# In production on Heroku, it will use the DATABASE_URL environment variable
 if 'DATABASE_URL' in os.environ:
     DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
 
 
 # Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
@@ -136,8 +137,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 # Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
@@ -145,20 +144,15 @@ USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# --- PRODUCTION CHANGE 4: CORS ---
+# --- HEROKU CHANGE 2: CORS ---
 # This section dynamically allows your live frontend to talk to your backend.
 CORS_ALLOWED_ORIGINS = []
 FRONTEND_URL = os.environ.get('FRONTEND_URL')
@@ -166,7 +160,7 @@ if FRONTEND_URL:
     CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
 
 # If not in production, allow localhost for development
-if 'RENDER' not in os.environ:
+if 'DYNO' not in os.environ:
     CORS_ALLOWED_ORIGINS.append("http://localhost:3000")
 
 
